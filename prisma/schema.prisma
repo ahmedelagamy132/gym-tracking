@@ -1,0 +1,128 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dailyLogs        DailyLog[]
+  workoutSessions  WorkoutSession[]
+  weightLogs       WeightLog[]
+  waterLogs        WaterLog[]
+  customFoods      FoodLibrary[]     @relation("UserCustomFoods")
+}
+
+// 1. Food Library (Master List)
+model FoodLibrary {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  brand          String?
+  caloriesPer100 Float    // Total Calories
+  proteinPer100  Float    // Protein in grams
+  carbsPer100    Float    // Carbohydrates in grams
+  fatsPer100     Float    // Fats in grams
+  waterPer100    Float?   // Water (ml) per 100g, optional but requested
+  isCustom       Boolean  @default(false)
+  category       String   @default("Other")
+  
+  // Who created it (if custom)
+  createdBy      User?    @relation("UserCustomFoods", fields: [userId], references: [id])
+  userId         String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  dailyLogs      DailyLog[]
+}
+
+// 2. Daily Consumption Log
+model DailyLog {
+  id             String   @id @default(cuid())
+  date           DateTime // Use YYYY-MM-DD constraint
+  weightInGrams  Float
+  
+  // Snapshot of macros at time of logging (to maintain historical accuracy)
+  loggedCalories Float
+  loggedProtein  Float
+  loggedCarbs    Float
+  loggedFats     Float
+  loggedWater    Float    @default(0)
+  
+  food           FoodLibrary @relation(fields: [foodId], references: [id])
+  foodId         String
+  
+  user           User?    @relation(fields: [userId], references: [id])
+  userId         String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // @@index([date, userId]) removed for sqlite local speed
+}
+
+// 3. Workout Sessions
+model WorkoutSession {
+  id        String   @id @default(cuid())
+  date      DateTime
+  name      String   // E.g., "Push Day A", "Legs Focus"
+  
+  exercises ExerciseDetail[]
+  
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 4. Exercise Details
+model ExerciseDetail {
+  id        String   @id @default(cuid())
+  name      String   // E.g., "Barbell Bench Press"
+  sets      Int      @default(0) // Could also map individual Set rows for extreme precision
+  reps      Int      @default(0) // Simplified total or average
+  weight    Float    @default(0) // In kg/lbs
+  
+  session   WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
+
+  createdAt DateTime @default(now())
+}
+
+// 5. Weight Logs
+model WeightLog {
+  id        String   @id @default(cuid())
+  date      DateTime
+  weight    Float    // In kg or lbs
+  notes     String?
+  
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+
+  createdAt DateTime @default(now())
+
+  // @@unique([userId, date])
+}
+
+// 6. Water Logs
+model WaterLog {
+  id        String   @id @default(cuid())
+  date      DateTime
+  amountMl  Int      // Amount in ml (e.g., 250 for a glass)
+  
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+
+  createdAt DateTime @default(now())
+}
