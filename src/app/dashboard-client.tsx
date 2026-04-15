@@ -563,7 +563,7 @@ export function DashboardClient() {
         <div className="mt-8 pt-6 border-t border-zinc-100 flex flex-col gap-3">
            <label className="text-sm font-medium text-zinc-600">Daily Bodyweight</label>
            <div className="flex gap-2">
-              <input type="number" step="0.1" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} placeholder="0.0" className="w-full bg-[#f9fafb] border border-zinc-200 rounded-xl p-3 font-mono text-zinc-900 focus:outline-none" />
+              <input type="number" step="0.1" value={weightKg} onChange={(e) => setWeightKg(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="0.0" className="w-full bg-[#f9fafb] border border-zinc-200 rounded-xl p-3 font-mono text-zinc-900 focus:outline-none" />
               <button onClick={handleLogWeight} className="bg-zinc-900 text-white px-4 py-2 rounded-xl text-sm whitespace-nowrap hover:bg-zinc-800">
                 Log KG
               </button>
