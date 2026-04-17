@@ -12,7 +12,6 @@ const DEFAULT_TARGETS = {
   fat: 70,
   water: 3750,
   salata: 500,
-  creatine: 5,
 };
 
 type Targets = typeof DEFAULT_TARGETS;
@@ -367,14 +366,48 @@ export function DashboardClient() {
     }, 0);
   }, [logs]);
 
-  const creatineGrams = useMemo(() => {
-    return logs.reduce((total, log) => {
-      if (log.name.toLowerCase().includes('creatine')) {
-        return total + log.grams;
-      }
-      return total;
-    }, 0);
+  const creatineLog = useMemo(() => {
+    return logs.find(log => log.name.toLowerCase() === 'creatine (5g)');
   }, [logs]);
+
+  const handleToggleCreatine = () => {
+    if (creatineLog) {
+      removeLog(creatineLog.id);
+    } else {
+      // Optimistic UI updates
+      const tempId = Date.now().toString();
+      const newEntry: LoggedFood = {
+        id: tempId,
+        name: 'Creatine (5g)',
+        grams: 5,
+        cals: 0,
+        pro: 0,
+        carb: 0,
+        fat: 0,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setLogs((prev) => [newEntry, ...prev]);
+
+      startTransition(() => {
+        addFoodLog({
+          foodName: 'Creatine (5g)',
+          calsPer100: 0,
+          proPer100: 0,
+          carbPer100: 0,
+          fatPer100: 0,
+          grams: 5,
+          loggedCalories: 0,
+          loggedProtein: 0,
+          loggedCarbs: 0,
+          loggedFats: 0,
+          dateString: date.toISOString(),
+        }).then(() => {
+          // Re-fetch to ensure sync
+          getDayData(date.toISOString()).then(res => setLogs(res.logs));
+        }).catch(console.error);
+      });
+    }
+  };
 
   const weightPath = useMemo(() => {
     if (weightHistory.length === 0) return 'M 0 50 Q 50 50 100 50';
@@ -744,32 +777,20 @@ export function DashboardClient() {
               </button>
             )}
           </div>
+        </div>
 
-          <div className="flex items-center justify-between border border-violet-100 bg-violet-50/50 p-4 rounded-2xl relative overflow-hidden group">
-            <motion.div 
-              className="absolute left-0 bottom-0 top-0 bg-violet-200/40"
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.min((creatineGrams / targets.creatine) * 100, 100)}%` }}
-            />
-            <div className="z-10 flex flex-col">
-              <span className="font-mono text-xl text-violet-900 font-semibold">{creatineGrams.toFixed(1)} <span className="text-sm font-normal text-violet-700">g</span></span>
-              {editingTarget === 'creatine' ? (
-                <div className="flex items-center gap-1 mt-1">
-                  <input type="number" step="0.1" autoFocus value={tempTargetValue} onChange={e => setTempTargetValue(e.target.value ? Number(e.target.value) : '')} onKeyDown={e => e.key === 'Enter' && saveTarget('creatine')} onBlur={() => setEditingTarget(null)} className="w-16 bg-white border border-violet-200 rounded px-1 py-0.5 text-[10px] font-mono focus:outline-none" />
-                  <button onMouseDown={(e) => { e.preventDefault(); saveTarget('creatine'); }}><CheckIcon className="w-4 h-4 text-violet-600" /></button>
-                </div>
-              ) : (
-                <span className="text-[10px] text-violet-600 uppercase tracking-widest mt-1">/ {targets.creatine}g Creatine Goal</span>
-              )}
+        <div className="mt-8 pt-6 border-t border-zinc-100 flex flex-col gap-3">
+          <label className="text-sm font-medium text-zinc-600">Daily Supps</label>
+          <div className="flex items-center justify-between bg-[#f9fafb] border border-zinc-200 p-4 rounded-2xl cursor-pointer hover:border-violet-300 transition-colors group" onClick={handleToggleCreatine}>
+            <div className="flex items-center gap-3">
+              <div className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${creatineLog ? 'bg-violet-500 text-white' : 'bg-white border border-zinc-300 text-transparent group-hover:border-violet-400'}`}>
+                <CheckIcon className="w-4 h-4" />
+              </div>
+              <span className={`text-sm font-medium transition-colors ${creatineLog ? 'text-zinc-900' : 'text-zinc-600'}`}>Creatine (5g)</span>
             </div>
-            {editingTarget !== 'creatine' && (
-              <button 
-                onClick={() => { setEditingTarget('creatine'); setTempTargetValue(targets.creatine); }} 
-                className="z-10 absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1.5 rounded-md shadow-sm border border-violet-100 text-violet-500 hover:text-violet-700"
-              >
-                <Pencil1Icon className="w-3 h-3" />
-              </button>
-            )}
+            <span className={`text-xs font-mono tracking-wider uppercase ${creatineLog ? 'text-violet-600' : 'text-zinc-400'}`}>
+              {creatineLog ? 'Taken' : 'Pending'}
+            </span>
           </div>
         </div>
 
