@@ -12,6 +12,7 @@ const DEFAULT_TARGETS = {
   fat: 70,
   water: 3750,
   salata: 500,
+  creatine: 5,
 };
 
 type Targets = typeof DEFAULT_TARGETS;
@@ -360,6 +361,15 @@ export function DashboardClient() {
       const lowerName = log.name.toLowerCase();
       // Track anything that sounds like a salad / greens or exactly matches "salata"
       if (lowerName.includes('salata') || lowerName.includes('salad') || lowerName.includes('greens')) {
+        return total + log.grams;
+      }
+      return total;
+    }, 0);
+  }, [logs]);
+
+  const creatineGrams = useMemo(() => {
+    return logs.reduce((total, log) => {
+      if (log.name.toLowerCase().includes('creatine')) {
         return total + log.grams;
       }
       return total;
@@ -729,6 +739,33 @@ export function DashboardClient() {
               <button 
                 onClick={() => { setEditingTarget('salata'); setTempTargetValue(targets.salata); }} 
                 className="z-10 absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1.5 rounded-md shadow-sm border border-emerald-100 text-emerald-500 hover:text-emerald-700"
+              >
+                <Pencil1Icon className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between border border-violet-100 bg-violet-50/50 p-4 rounded-2xl relative overflow-hidden group">
+            <motion.div 
+              className="absolute left-0 bottom-0 top-0 bg-violet-200/40"
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min((creatineGrams / targets.creatine) * 100, 100)}%` }}
+            />
+            <div className="z-10 flex flex-col">
+              <span className="font-mono text-xl text-violet-900 font-semibold">{creatineGrams.toFixed(1)} <span className="text-sm font-normal text-violet-700">g</span></span>
+              {editingTarget === 'creatine' ? (
+                <div className="flex items-center gap-1 mt-1">
+                  <input type="number" step="0.1" autoFocus value={tempTargetValue} onChange={e => setTempTargetValue(e.target.value ? Number(e.target.value) : '')} onKeyDown={e => e.key === 'Enter' && saveTarget('creatine')} onBlur={() => setEditingTarget(null)} className="w-16 bg-white border border-violet-200 rounded px-1 py-0.5 text-[10px] font-mono focus:outline-none" />
+                  <button onMouseDown={(e) => { e.preventDefault(); saveTarget('creatine'); }}><CheckIcon className="w-4 h-4 text-violet-600" /></button>
+                </div>
+              ) : (
+                <span className="text-[10px] text-violet-600 uppercase tracking-widest mt-1">/ {targets.creatine}g Creatine Goal</span>
+              )}
+            </div>
+            {editingTarget !== 'creatine' && (
+              <button 
+                onClick={() => { setEditingTarget('creatine'); setTempTargetValue(targets.creatine); }} 
+                className="z-10 absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1.5 rounded-md shadow-sm border border-violet-100 text-violet-500 hover:text-violet-700"
               >
                 <Pencil1Icon className="w-3 h-3" />
               </button>
