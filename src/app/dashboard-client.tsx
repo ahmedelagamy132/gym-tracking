@@ -11,6 +11,7 @@ const DEFAULT_TARGETS = {
   carb: 230,
   fat: 70,
   water: 3750,
+  salata: 500,
 };
 
 type Targets = typeof DEFAULT_TARGETS;
@@ -354,6 +355,17 @@ export function DashboardClient() {
     }, { cals: 0, pro: 0, carb: 0, fat: 0 });
   }, [logs]);
 
+  const salataGrams = useMemo(() => {
+    return logs.reduce((total, log) => {
+      const lowerName = log.name.toLowerCase();
+      // Track anything that sounds like a salad / greens or exactly matches "salata"
+      if (lowerName.includes('salata') || lowerName.includes('salad') || lowerName.includes('greens')) {
+        return total + log.grams;
+      }
+      return total;
+    }, 0);
+  }, [logs]);
+
   const weightPath = useMemo(() => {
     if (weightHistory.length === 0) return 'M 0 50 Q 50 50 100 50';
     if (weightHistory.length === 1) return `M 0 50 Q 50 50 100 50`;
@@ -693,6 +705,35 @@ export function DashboardClient() {
           <button onClick={handleAddWater} className="w-full bg-[#f9fafb] border border-blue-200/60 text-blue-700 py-3 rounded-xl hover:bg-blue-50 transition-colors text-sm font-medium">
             + 1 Glass (250ml)
           </button>
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-zinc-100 flex flex-col gap-4">
+          <div className="flex items-center justify-between border border-emerald-100 bg-emerald-50/50 p-4 rounded-2xl relative overflow-hidden group">
+            <motion.div 
+              className="absolute left-0 bottom-0 top-0 bg-emerald-200/40"
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min((salataGrams / targets.salata) * 100, 100)}%` }}
+            />
+            <div className="z-10 flex flex-col">
+              <span className="font-mono text-xl text-emerald-900 font-semibold">{salataGrams.toFixed(0)} <span className="text-sm font-normal text-emerald-700">g</span></span>
+              {editingTarget === 'salata' ? (
+                <div className="flex items-center gap-1 mt-1">
+                  <input type="number" autoFocus value={tempTargetValue} onChange={e => setTempTargetValue(e.target.value ? Number(e.target.value) : '')} onKeyDown={e => e.key === 'Enter' && saveTarget('salata')} onBlur={() => setEditingTarget(null)} className="w-16 bg-white border border-emerald-200 rounded px-1 py-0.5 text-[10px] font-mono focus:outline-none" />
+                  <button onMouseDown={(e) => { e.preventDefault(); saveTarget('salata'); }}><CheckIcon className="w-4 h-4 text-emerald-600" /></button>
+                </div>
+              ) : (
+                <span className="text-[10px] text-emerald-600 uppercase tracking-widest mt-1">/ {targets.salata}g Salata Goal</span>
+              )}
+            </div>
+            {editingTarget !== 'salata' && (
+              <button 
+                onClick={() => { setEditingTarget('salata'); setTempTargetValue(targets.salata); }} 
+                className="z-10 absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1.5 rounded-md shadow-sm border border-emerald-100 text-emerald-500 hover:text-emerald-700"
+              >
+                <Pencil1Icon className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="mt-8 pt-6 border-t border-zinc-100 flex flex-col gap-3">
