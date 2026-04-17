@@ -710,15 +710,15 @@ export function DashboardClient() {
       */}
       <motion.section 
         layout
-        className="col-span-1 border border-zinc-200/50 bg-white rounded-[2.5rem] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] md:col-span-3 p-8 flex flex-col justify-between"
+        className="col-span-1 border border-zinc-200/50 bg-white rounded-[2.5rem] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] md:col-span-3 p-6 flex flex-col justify-between"
       >
         <header className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-medium tracking-tight text-zinc-900">Hydration</h2>
           <MixIcon className="w-5 h-5 text-blue-500" />
         </header>
 
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between border border-blue-100 bg-blue-50/50 p-4 rounded-2xl relative overflow-hidden group">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between border border-blue-100 bg-blue-50/50 p-3 rounded-2xl relative overflow-hidden group">
             <motion.div 
               className="absolute left-0 bottom-0 top-0 bg-blue-200/40"
               initial={{ width: 0 }}
@@ -738,20 +738,20 @@ export function DashboardClient() {
             {editingTarget !== 'water' && (
               <button 
                 onClick={() => { setEditingTarget('water'); setTempTargetValue(targets.water); }} 
-                className="z-10 absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1.5 rounded-md shadow-sm border border-blue-100 text-blue-400 hover:text-blue-600"
+                className="z-10 absolute right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1.5 rounded-md shadow-sm border border-blue-100 text-blue-400 hover:text-blue-600"
               >
                 <Pencil1Icon className="w-3 h-3" />
               </button>
             )}
           </div>
           
-          <button onClick={handleAddWater} className="w-full bg-[#f9fafb] border border-blue-200/60 text-blue-700 py-3 rounded-xl hover:bg-blue-50 transition-colors text-sm font-medium">
+          <button onClick={handleAddWater} className="w-full bg-[#f9fafb] border border-blue-200/60 text-blue-700 py-2 rounded-xl hover:bg-blue-50 transition-colors text-sm font-medium">
             + 1 Glass (250ml)
           </button>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-zinc-100 flex flex-col gap-4">
-          <div className="flex items-center justify-between border border-emerald-100 bg-emerald-50/50 p-4 rounded-2xl relative overflow-hidden group">
+        <div className="mt-5 pt-4 border-t border-zinc-100 flex flex-col gap-3">
+          <div className="flex items-center justify-between border border-emerald-100 bg-emerald-50/50 p-3 rounded-2xl relative overflow-hidden group">
             <motion.div 
               className="absolute left-0 bottom-0 top-0 bg-emerald-200/40"
               initial={{ width: 0 }}
@@ -771,7 +771,7 @@ export function DashboardClient() {
             {editingTarget !== 'salata' && (
               <button 
                 onClick={() => { setEditingTarget('salata'); setTempTargetValue(targets.salata); }} 
-                className="z-10 absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1.5 rounded-md shadow-sm border border-emerald-100 text-emerald-500 hover:text-emerald-700"
+                className="z-10 absolute right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-1.5 rounded-md shadow-sm border border-emerald-100 text-emerald-500 hover:text-emerald-700"
               >
                 <Pencil1Icon className="w-3 h-3" />
               </button>
@@ -779,12 +779,12 @@ export function DashboardClient() {
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-zinc-100 flex flex-col gap-3">
+        <div className="mt-5 pt-4 border-t border-zinc-100 flex flex-col gap-2">
           <label className="text-sm font-medium text-zinc-600">Daily Supps</label>
-          <div className="flex items-center justify-between bg-[#f9fafb] border border-zinc-200 p-4 rounded-2xl cursor-pointer hover:border-violet-300 transition-colors group" onClick={handleToggleCreatine}>
+          <div className="flex items-center justify-between bg-[#f9fafb] border border-zinc-200 p-3 rounded-2xl cursor-pointer hover:border-violet-300 transition-colors group" onClick={handleToggleCreatine}>
             <div className="flex items-center gap-3">
-              <div className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${creatineLog ? 'bg-violet-500 text-white' : 'bg-white border border-zinc-300 text-transparent group-hover:border-violet-400'}`}>
-                <CheckIcon className="w-4 h-4" />
+              <div className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${creatineLog ? 'bg-violet-500 text-white' : 'bg-white border border-zinc-300 text-transparent group-hover:border-violet-400'}`}>
+                <CheckIcon className="w-3.5 h-3.5" />
               </div>
               <span className={`text-sm font-medium transition-colors ${creatineLog ? 'text-zinc-900' : 'text-zinc-600'}`}>Creatine (5g)</span>
             </div>
@@ -794,10 +794,10 @@ export function DashboardClient() {
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-zinc-100 flex flex-col gap-3">
+        <div className="mt-5 pt-4 border-t border-zinc-100 flex flex-col gap-2">
            <label className="text-sm font-medium text-zinc-600">Daily Bodyweight</label>
            <div className="flex gap-2">
-              <input type="number" step="0.1" value={weightKg} onChange={(e) => setWeightKg(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="0.0" className="w-full bg-[#f9fafb] border border-zinc-200 rounded-xl p-3 font-mono text-zinc-900 focus:outline-none" />
+              <input type="number" step="0.1" value={weightKg} onChange={(e) => setWeightKg(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="0.0" className="w-full bg-[#f9fafb] border border-zinc-200 rounded-xl p-2 font-mono text-zinc-900 focus:outline-none" />
               <button onClick={handleLogWeight} className="bg-zinc-900 text-white px-4 py-2 rounded-xl text-sm whitespace-nowrap hover:bg-zinc-800">
                 Log KG
               </button>
