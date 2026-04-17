@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { addFoodLog, getDayData, logWeight, addWater, getWeightProgress, logWorkoutSession, getFoodLibrary, createCustomFood } from './actions';
+import { addFoodLog, getDayData, logWeight, addWater, getWeightProgress, logWorkoutSession, getFoodLibrary, createCustomFood, editFoodNutrition, editConsumptionLog, deleteConsumptionLog } from './actions';
 import { format, subDays, addDays } from 'date-fns';
 
 const DEFAULT_TARGETS = {
@@ -87,6 +87,12 @@ export function DashboardClient() {
   
   const [isAddingFood, setIsAddingFood] = useState(false);
   const [newFood, setNewFood] = useState({ name: '', cals: '', pro: '', carbs: '', fat: '', category: 'Meats & Poultry' });
+
+  const [isEditingFood, setIsEditingFood] = useState(false);
+  const [foodToEdit, setFoodToEdit] = useState({ id: '', name: '', cals: '', pro: '', carbs: '', fat: '', category: 'Meats & Poultry' });
+
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [tempLogGrams, setTempLogGrams] = useState<number | ''>('');
 
   useEffect(() => {
     getFoodLibrary().then(dbFoods => {
@@ -224,6 +230,90 @@ export function DashboardClient() {
         setIsAddingFood(false);
         setNewFood({ name: '', cals: '', pro: '', carbs: '', fat: '', category: 'Meats & Poultry' });
       }).catch(console.error);
+    });
+  };
+
+  const handleEditFoodSubmit = () => {
+    if (!foodToEdit.name || !foodToEdit.cals) return;
+    
+    startTransition(() => {
+      editFoodNutrition({
+        id: foodToEdit.id,
+        name: foodToEdit.name,
+        cals: Number(foodToEdit.cals) || 0,
+        pro: Number(foodToEdit.pro) || 0,
+        carbs: Number(foodToEdit.carbs) || 0,
+        fat: Number(foodToEdit.fat) || 0,
+        category: foodToEdit.category || 'Other',
+      }).then((food) => {
+        const enhancedFood = { ...food, isCustom: food.isCustom };
+        setFoods(prev => {
+           const newList = prev.map(f => String(f.id) === foodToEdit.id ? enhancedFood : f);
+           return newList.sort((a, b) => a.name.localeCompare(b.name));
+        });
+        setSelectedFood(enhancedFood);
+        setIsEditingFood(false);
+      }).catch(console.error);
+    });
+  };
+
+  const saveLogEdit = (logId: string) => {
+    if (!tempLogGrams || Number(tempLogGrams) <= 0) {
+      setEditingLogId(null);
+      return;
+    }
+    
+    const log = logs.find(l => l.id === logId);
+    if (!log) return;
+    
+    if (Number(tempLogGrams) === log.grams) {
+      setEditingLogId(null);
+      return;
+    }
+  
+    const newGrams = Number(tempLogGrams);
+    const oldFactor = log.grams / 100;
+    
+    const calsPer100 = log.cals / Math.max(oldFactor, 0.0001);
+    const proPer100 = log.pro / Math.max(oldFactor, 0.0001);
+    const carbPer100 = log.carb / Math.max(oldFactor, 0.0001);
+    const fatPer100 = log.fat / Math.max(oldFactor, 0.0001);
+    
+    const newFactor = newGrams / 100;
+    
+    const newCals = calsPer100 * newFactor;
+    const newPro = proPer100 * newFactor;
+    const newCarb = carbPer100 * newFactor;
+    const newFat = fatPer100 * newFactor;
+    
+    // Optimistic Update
+    setLogs(prev => prev.map(l => l.id === logId ? {
+      ...l,
+      grams: newGrams,
+      cals: newCals,
+      pro: newPro,
+      carb: newCarb,
+      fat: newFat
+    } : l));
+    setEditingLogId(null);
+    
+    // DB Update
+    startTransition(() => {
+      editConsumptionLog({
+        id: logId,
+        grams: newGrams,
+        loggedCalories: newCals,
+        loggedProtein: newPro,
+        loggedCarbs: newCarb,
+        loggedFats: newFat
+      }).catch(console.error);
+    });
+  };
+
+  const removeLog = (logId: string) => {
+    setLogs(prev => prev.filter(l => l.id !== logId));
+    startTransition(() => {
+      deleteConsumptionLog(logId).catch(console.error);
     });
   };
 
@@ -371,11 +461,56 @@ export function DashboardClient() {
 
           <div className="flex flex-col gap-4 flex-1">
             {/* Search/Select mock */}
-            {!isAddingFood ? (
+            {isEditingFood ? (
+              <div className="flex flex-col gap-3 p-4 bg-[#eef2ff] border border-blue-200 rounded-xl relative">
+                <button onClick={() => setIsEditingFood(false)} className="absolute top-3 right-3 text-blue-400 hover:text-blue-600 bg-white rounded-full p-1 shadow-sm"><Cross2Icon className="w-4 h-4"/></button>
+                <h3 className="text-sm font-semibold text-blue-800 mb-1 leading-none tracking-tight">Edit Reference Data</h3>
+                <div className="grid grid-cols-1 gap-2">
+                  <input autoFocus type="text" placeholder="Food Name (e.g. Greek Yogurt)" value={foodToEdit.name} onChange={e => setFoodToEdit({...foodToEdit, name: e.target.value})} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-900 focus:outline-none focus:border-blue-400" />
+                  <select value={foodToEdit.category} onChange={e => setFoodToEdit({...foodToEdit, category: e.target.value})} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-600 focus:outline-none focus:border-blue-400 appearance-none">
+                    <option value="Meats & Poultry">Meats & Poultry</option>
+                    <option value="Fish & Seafood">Fish & Seafood</option>
+                    <option value="Dairy & Eggs">Dairy & Eggs</option>
+                    <option value="Grains & Legumes">Grains & Legumes</option>
+                    <option value="Fruits & Veggies">Fruits & Veggies</option>
+                    <option value="Nuts & Seeds">Nuts & Seeds</option>
+                    <option value="Supplements & Shakes">Supplements & Shakes</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  <input type="number" placeholder="Kcal" value={foodToEdit.cals} onChange={e => setFoodToEdit({...foodToEdit, cals: e.target.value})} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-xs font-mono text-zinc-900 focus:outline-none focus:border-blue-400" />
+                  <input type="number" placeholder="Pro(g)" value={foodToEdit.pro} onChange={e => setFoodToEdit({...foodToEdit, pro: e.target.value})} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-xs font-mono text-zinc-900 focus:outline-none focus:border-blue-400" />
+                  <input type="number" placeholder="Crb(g)" value={foodToEdit.carbs} onChange={e => setFoodToEdit({...foodToEdit, carbs: e.target.value})} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-xs font-mono text-zinc-900 focus:outline-none focus:border-blue-400" />
+                  <input type="number" placeholder="Fat(g)" value={foodToEdit.fat} onChange={e => setFoodToEdit({...foodToEdit, fat: e.target.value})} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-xs font-mono text-zinc-900 focus:outline-none focus:border-blue-400" />
+                </div>
+                <button onClick={handleEditFoodSubmit} disabled={!foodToEdit.name || !foodToEdit.cals || isPending} className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg text-sm mt-1 disabled:opacity-50 transition-colors">
+                  {isPending ? 'Saving...' : 'Update Reference'}
+                </button>
+              </div>
+            ) : !isAddingFood ? (
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                   <label className="text-sm font-medium text-zinc-600">Database Reference</label>
-                  <button onClick={() => setIsAddingFood(true)} className="text-xs text-emerald-600 font-medium hover:text-emerald-700 flex items-center gap-1"><PlusCircledIcon className="w-3.5 h-3.5"/> Add New</button>
+                  <div className="flex items-center gap-3">
+                    {selectedFood && (
+                      <button onClick={() => {
+                        setFoodToEdit({
+                          id: String(selectedFood.id),
+                          name: selectedFood.name,
+                          cals: String(selectedFood.cals),
+                          pro: String(selectedFood.pro),
+                          carbs: String(selectedFood.carbs),
+                          fat: String(selectedFood.fat),
+                          category: selectedFood.category || 'Other'
+                        });
+                        setIsEditingFood(true);
+                      }} className="text-xs text-blue-600 font-medium hover:text-blue-700 flex items-center gap-1">
+                        <Pencil1Icon className="w-3.5 h-3.5"/> Edit Base
+                      </button>
+                    )}
+                    <button onClick={() => setIsAddingFood(true)} className="text-xs text-emerald-600 font-medium hover:text-emerald-700 flex items-center gap-1"><PlusCircledIcon className="w-3.5 h-3.5"/> Add New</button>
+                  </div>
                 </div>
                 <select 
                   className="w-full bg-[#f9fafb] border border-zinc-200 rounded-xl p-3 text-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-400 transition-shadow appearance-none font-medium"
@@ -672,20 +807,38 @@ export function DashboardClient() {
                     layoutId={`log-${log.id}`}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0, transition: { delay: Math.min(i * 0.05, 0.5) } }}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white border border-zinc-100 rounded-2xl hover:border-zinc-200 transition-colors shadow-sm"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white border border-zinc-100 rounded-2xl hover:border-zinc-200 transition-colors shadow-sm relative group"
                   >
-                    <div>
+                    <div className="flex-1 pr-4">
                       <p className="font-medium text-zinc-900 text-sm flex items-center gap-2">
                         <span className="text-xs font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{log.time}</span>
                         {log.name}
                       </p>
-                      <p className="text-xs font-mono text-zinc-500 mt-1">{log.grams}g consumed</p>
+                      
+                      {editingLogId === log.id ? (
+                        <div className="flex items-center gap-2 mt-2">
+                           <input type="number" autoFocus value={tempLogGrams} onChange={e => setTempLogGrams(e.target.value ? Number(e.target.value) : '')} placeholder="grams" className="w-20 px-2 py-1 text-xs border border-emerald-400 rounded focus:outline-none" />
+                           <button onClick={() => saveLogEdit(log.id)} className="bg-emerald-600 text-white p-1 rounded hover:bg-emerald-700 transition"><CheckIcon className="w-3.5 h-3.5"/></button>
+                           <button onClick={() => setEditingLogId(null)} className="bg-zinc-200 text-zinc-600 p-1 rounded hover:bg-zinc-300 transition"><Cross2Icon className="w-3.5 h-3.5"/></button>
+                        </div>
+                      ) : (
+                        <p className="text-xs font-mono text-zinc-500 mt-1 flex items-center gap-2">
+                          {log.grams}g consumed 
+                          <button onClick={() => { setEditingLogId(log.id); setTempLogGrams(log.grams); }} className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700">
+                             <Pencil1Icon className="w-3.5 h-3.5" />
+                          </button>
+                        </p>
+                      )}
                     </div>
-                    <div className="mt-2 sm:mt-0 text-left sm:text-right flex gap-3 sm:block">
+                    
+                    <div className="mt-2 sm:mt-0 text-left sm:text-right flex gap-3 sm:block relative">
                       <p className="font-mono text-sm text-zinc-900">{log.cals.toFixed(0)} kcal</p>
                       <p className="text-[10px] text-zinc-400 uppercase tracking-wider hidden sm:block mt-1">
                         P:{log.pro.toFixed(0)} C:{log.carb.toFixed(0)} F:{log.fat.toFixed(0)}
                       </p>
+                      <button onClick={() => removeLog(log.id)} className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-red-100 text-red-500 hover:bg-red-200 p-1 rounded-full sm:hidden md:block">
+                        <Cross2Icon className="w-3 h-3" />
+                      </button>
                     </div>
                   </motion.div>
                 ))

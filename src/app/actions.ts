@@ -231,3 +231,72 @@ export async function createCustomFood(data: {
     category: food.category,
   };
 }
+
+export async function editFoodNutrition(data: {
+  id: string;
+  name: string;
+  cals: number;
+  pro: number;
+  carbs: number;
+  fat: number;
+  category: string;
+}) {
+  const updatedFood = await prisma.foodLibrary.update({
+    where: { id: data.id },
+    data: {
+      name: data.name,
+      caloriesPer100: data.cals,
+      proteinPer100: data.pro,
+      carbsPer100: data.carbs,
+      fatsPer100: data.fat,
+      category: data.category,
+    }
+  });
+
+  return {
+    id: updatedFood.id,
+    name: updatedFood.name,
+    cals: updatedFood.caloriesPer100,
+    pro: updatedFood.proteinPer100,
+    carbs: updatedFood.carbsPer100,
+    fat: updatedFood.fatsPer100,
+    isCustom: updatedFood.isCustom,
+    category: updatedFood.category,
+  };
+}
+
+export async function editConsumptionLog(data: {
+  id: string;
+  grams: number;
+  loggedCalories: number;
+  loggedProtein: number;
+  loggedCarbs: number;
+  loggedFats: number;
+}) {
+  const updatedLog = await prisma.dailyLog.update({
+    where: { id: data.id },
+    data: {
+      weightInGrams: data.grams,
+      loggedCalories: data.loggedCalories,
+      loggedProtein: data.loggedProtein,
+      loggedCarbs: data.loggedCarbs,
+      loggedFats: data.loggedFats,
+    }
+  });
+
+  return {
+    id: updatedLog.id,
+    grams: updatedLog.weightInGrams,
+    cals: updatedLog.loggedCalories,
+    pro: updatedLog.loggedProtein,
+    carbs: updatedLog.loggedCarbs,
+    fat: updatedLog.loggedFats,
+  };
+}
+
+export async function deleteConsumptionLog(id: string) {
+  await prisma.dailyLog.delete({
+    where: { id }
+  });
+  return true;
+}
